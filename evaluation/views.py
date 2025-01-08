@@ -59,3 +59,28 @@ class TagView(View):
             return HttpResponse(status=204)
         except KeyError:
             return JsonResponse({"error": "Tag name is required"}, status=400)
+
+
+class ConnectionView(View):
+    @Auth.require_login
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            # Evaluation.connect(data['signature'], data['tag'])
+            evaluation = Evaluation.objects.get(signature=data['signature'])
+            tag = Tag.objects.get(name=data['tag'])
+            evaluation.tags.add(tag)
+            return HttpResponse(status=201)
+        except (KeyError, ValidationError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+    @Auth.require_login
+    def delete(self, request):
+        try:
+            data = json.loads(request.body)
+            evaluation = Evaluation.objects.get(signature=data['signature'])
+            tag = Tag.objects.get(name=data['tag'])
+            evaluation.tags.remove(tag)
+            return HttpResponse(status=204)
+        except (KeyError, ValidationError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
