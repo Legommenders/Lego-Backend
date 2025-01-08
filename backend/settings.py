@@ -42,8 +42,7 @@ CORS_ALLOW_METHODS = [
 # 允许的自定义头
 CORS_ALLOW_HEADERS = [
     "Content-Type",
-    "Authorization",
-    "HTTP_TOKEN",  # 需要将你的自定义头添加进来
+    "Authentication",
     # 如果有其他自定义头，也要加
 ]
 

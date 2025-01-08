@@ -15,7 +15,7 @@ class Auth:
         """
         @wraps(func)
         def wrapper(self, request: HttpRequest, *args, **kwargs):
-            auth_token = request.META.get('HTTP_TOKEN')
+            auth_token = request.META.get('HTTP_AUTHENTICATION')
             if auth_token != Space.auth:
                 return JsonResponse({"error": cls.AUTH_ERROR_MESSAGE}, status=401)
             return func(self, request, *args, **kwargs)
