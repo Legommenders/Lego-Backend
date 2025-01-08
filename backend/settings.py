@@ -29,6 +29,24 @@ ALLOWED_HOSTS = ['*']
 
 CORS_ALLOW_ALL_ORIGINS = True
 
+# 允许在预检请求中使用哪些方法
+CORS_ALLOW_METHODS = [
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS"
+]
+
+# 允许的自定义头
+CORS_ALLOW_HEADERS = [
+    "Content-Type",
+    "Authorization",
+    "HTTP_TOKEN",  # 需要将你的自定义头添加进来
+    # 如果有其他自定义头，也要加
+]
+
 
 # Application definition
 
