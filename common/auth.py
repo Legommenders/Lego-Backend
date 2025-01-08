@@ -14,10 +14,10 @@ class Auth:
         Decorator to ensure a request is authenticated using a token-based system.
         """
         @wraps(func)
-        def wrapper(request: HttpRequest, *args, **kwargs):
+        def wrapper(self, request: HttpRequest, *args, **kwargs):
             auth_token = request.META.get('HTTP_TOKEN')
             if auth_token != Space.auth:
                 return JsonResponse({"error": cls.AUTH_ERROR_MESSAGE}, status=401)
-            return func(request, *args, **kwargs)
+            return func(self, request, *args, **kwargs)
 
         return wrapper
