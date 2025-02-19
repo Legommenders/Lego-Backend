@@ -1,12 +1,17 @@
 from functools import wraps
+
+from SmartDjango import E, Hc
 from django.http import HttpRequest, JsonResponse
-from django.core.exceptions import PermissionDenied
 
 from common.space import Space
 
 
+@E.register()
+class AuthError:
+    TOKEN = E('Unauthorized access. Please provide a valid token.', hc=Hc.Unauthorized)
+
+
 class Auth:
-    AUTH_ERROR_MESSAGE = 'Unauthorized access. Please provide a valid token.'
 
     @classmethod
     def require_login(cls, func):
@@ -14,10 +19,10 @@ class Auth:
         Decorator to ensure a request is authenticated using a token-based system.
         """
         @wraps(func)
-        def wrapper(self, request: HttpRequest, *args, **kwargs):
+        def wrapper(request: HttpRequest, *args, **kwargs):
             auth_token = request.META.get('HTTP_AUTHENTICATION')
             if auth_token != Space.auth:
-                return JsonResponse({"error": cls.AUTH_ERROR_MESSAGE}, status=401)
-            return func(self, request, *args, **kwargs)
+                raise AuthError.TOKEN
+            return func(request, *args, **kwargs)
 
         return wrapper

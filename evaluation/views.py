@@ -16,9 +16,10 @@ class EvaluationView(View):
 
         return [evaluation.json() for evaluation in Evaluation.objects.all()]
 
+    @staticmethod
     @Analyse.r(b=[EvaluationP.signature, EvaluationP.command, EvaluationP.configuration])
     @Auth.require_login
-    def post(self, request):
+    def post(request):
         evaluation = Evaluation.create_or_get(
             signature=request.d.signature,
             command=request.d.command,
