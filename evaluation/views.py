@@ -39,7 +39,7 @@ class ExperimentView(View):
     @staticmethod
     @Analyse.r(q=[
         ExperimentP.session.clone().null(),
-        ExperimentP.seed.clone().null().process(int),
+        ExperimentP.seed.clone().null().process(int, begin=True),
         EvaluationP.signature.clone().null()
     ])
     def get(r):
