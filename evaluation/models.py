@@ -168,8 +168,11 @@ class Experiment(models.Model):
     def _readable_created_at(self):
         return self.created_at.isoformat()
 
+    def _readable_signature(self):
+        return self.evaluation.signature
+
     def json(self):
-        return self.dictify('evaluation__signature->signature', 'seed', 'session', 'log', 'performance', 'is_completed', 'created_at', 'registered_pid')
+        return self.dictify('signature', 'seed', 'session', 'log', 'performance', 'is_completed', 'created_at', 'registered_pid')
 
     def jsonl(self):
         return self.dictify('session', 'is_completed', 'created_at', 'seed', 'performance')
