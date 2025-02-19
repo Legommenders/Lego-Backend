@@ -180,7 +180,7 @@ class Experiment(models.Model):
         return self.dictify('signature', 'seed', 'log', 'performance', 'is_completed', 'created_at', 'pid')
 
     def jsonl(self):
-        return self.dictify('session', 'is_completed', 'created_at', 'seed', 'performance')
+        return self.dictify('is_completed', 'created_at', 'seed', 'performance', 'pid')
 
 
 class EvaluationP:
