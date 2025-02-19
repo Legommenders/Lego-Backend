@@ -17,7 +17,7 @@ class EvaluationView(View):
         return [evaluation.json() for evaluation in Evaluation.objects.all()]
 
     @staticmethod
-    @Analyse.r(b=[EvaluationP.signature, EvaluationP.seed, EvaluationP.command, EvaluationP.configuration])
+    @Analyse.r(b=[EvaluationP.signature, EvaluationP.command, EvaluationP.configuration])
     @Auth.require_login
     def post(r):
         evaluation = Evaluation.create_or_get(
@@ -25,11 +25,35 @@ class EvaluationView(View):
             command=r.d.command,
             configuration=r.d.configuration,
         )
+        return evaluation.json()
+
+    @staticmethod
+    @Analyse.r(b=[EvaluationP.signature])
+    @Auth.require_login
+    def delete(r):
+        evaluation = Evaluation.get_by_signature(r.d.signature)
+        evaluation.delete()
+
+
+class ExperimentView(View):
+    @staticmethod
+    @Analyse.r(q=[ExperimentP.session])
+    @Auth.require_login
+    def get(r):
+        session = r.d.session
+        experiment = Experiment.get_by_session(session)
+        return experiment.json()
+
+    @staticmethod
+    @Analyse.r(b=[EvaluationP.signature, ExperimentP.seed])
+    @Auth.require_login
+    def post(r):
+        evaluation = Evaluation.get_by_signature(r.d.signature)
         experiment = Experiment.create_or_get(
             evaluation=evaluation,
             seed=r.d.seed,
         )
-        return experiment.session
+        return experiment.json()
 
     @staticmethod
     @Analyse.r(b=[ExperimentP.session, ExperimentP.log, ExperimentP.performance])
@@ -42,9 +66,12 @@ class EvaluationView(View):
         )
         return experiment.json()
 
+
+class ExperimentRegisterView(View):
     @staticmethod
-    @Analyse.r(b=[EvaluationP.signature])
+    @Analyse.r(q=[ExperimentP.session], b=[ExperimentP.pid])
     @Auth.require_login
-    def delete(r):
-        evaluation = Evaluation.get_by_signature(r.d.signature)
-        evaluation.delete()
+    def post(r):
+        experiment = Experiment.get_by_session(r.d.session)
+        experiment.register(r.d.pid)
+        return experiment.json()

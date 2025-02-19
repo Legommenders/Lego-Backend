@@ -123,6 +123,7 @@ class Experiment(models.Model):
     session = models.CharField(max_length=32, unique=True)
     log = models.TextField(null=True, blank=True)
     performance = models.TextField(null=True, blank=True)
+    pid = models.IntegerField(null=True, blank=True)
     is_completed = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -151,6 +152,10 @@ class Experiment(models.Model):
         except cls.DoesNotExist:
             raise EvaluationError.EXP_NOT_FOUND
 
+    def register(self, pid):
+        self.pid = pid
+        self.save()
+
     def complete(self, log, performance):
         """Marks the experiment as completed."""
         if self.is_completed:
@@ -161,16 +166,17 @@ class Experiment(models.Model):
         self.save()
 
     def json(self):
-        return self.dictify('evaluation__signature->signature', 'seed', 'session', 'log', 'performance', 'is_completed', 'created_at')
+        return self.dictify('evaluation__signature->signature', 'seed', 'session', 'log', 'performance', 'is_completed', 'created_at', 'registered_pid')
 
     def jsonl(self):
         return self.dictify('session', 'is_completed', 'created_at', 'seed', 'performance')
 
 
 class EvaluationP:
-    signature, command, configuration, seed = Evaluation.get_params(
-        'signature', 'command', 'configuration', 'seed')
+    signature, command, configuration = Evaluation.get_params(
+        'signature', 'command', 'configuration')
 
 
 class ExperimentP:
-    session, log, performance = Experiment.get_params('session', 'log', 'performance')
+    session, log, performance, seed, pid = Experiment.get_params(
+        'session', 'log', 'performance', 'seed', 'pid')
