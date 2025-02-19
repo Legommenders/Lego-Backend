@@ -61,18 +61,17 @@ class Evaluation(models.Model):
         """Returns the tags associated with this evaluation."""
         return self.tags.all()
 
+    def _readable_created_at(self):
+        return self.created_at.isoformat()
+
+    def _readable_modified_at(self):
+        return self.modified_at.isoformat()
+
+    def _readable_experiments(self):
+        return [exp.jsonl() for exp in self.experiment_set.all()]
+
     def json(self):
-        """Serializes the evaluation model to a dictionary."""
-        return {
-            'signature': self.signature,
-            'command': self.command,
-            'configuration': self.configuration,
-            'created_at': self.created_at.isoformat(),
-            'modified_at': self.modified_at.isoformat(),
-            'comment': self.comment,
-            'tags': [tag.name for tag in self.get_tags()],
-            'experiments': [exp.json() for exp in self.experiment_set.all()],
-        }
+        return self.dictify('signature', 'command', 'configuration', 'created_at', 'modified_at', 'comment', 'experiments')
 
 
 class Tag(models.Model):
@@ -102,12 +101,15 @@ class Tag(models.Model):
         """Associates an evaluation with the tag."""
         self.evaluations.add(evaluation)
 
+    def _readable_evaluations(self):
+        return [evaluation.signature for evaluation in self.evaluations.all()]
+
     def json(self):
         """Serializes the tag model to a dictionary."""
-        return {
-            'name': self.name,
-            'evaluations': [evaluation.signature for evaluation in self.evaluations.all()],
-        }
+        return self.dictify('name', 'evaluations')
+
+    def jsonl(self):
+        return self.dictify('name')
 
 
 class Experiment(models.Model):
@@ -154,12 +156,7 @@ class Experiment(models.Model):
         self.save()
 
     def json(self):
-        """Serializes the experiment model to a dictionary."""
-        return {
-            'evaluation': self.evaluation.signature,
-            'seed': self.seed,
-            'log': self.log,
-            'performance': self.performance,
-            'is_completed': self.is_completed,
-            'created_at': self.created_at.isoformat(),
-        }
+        return self.dictify('evaluation__signature->signature', 'seed', 'session', 'log', 'performance', 'is_completed', 'created_at')
+
+    def jsonl(self):
+        return self.dictify('session', 'is_completed', 'created_at', 'seed', 'performance')
