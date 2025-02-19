@@ -14,17 +14,17 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path
-from evaluation.views import EvaluationView, TagView, ConnectionView
+from evaluation.views import EvaluationView
 
 urlpatterns = [
     # Evaluation URLs
     path('evaluations/', EvaluationView.as_view(), name='evaluation-list'),
     path('evaluations/<str:signature>/', EvaluationView.as_view(), name='evaluation-detail'),
 
-    # Tag URLs
-    path('tags/', TagView.as_view(), name='tag-list'),
-    path('tags/<str:name>/', TagView.as_view(), name='tag-detail'),
-
-    # Connection URLs
-    path('connections/', ConnectionView.as_view(), name='connection-list'),
+    # # Tag URLs
+    # path('tags/', TagView.as_view(), name='tag-list'),
+    # path('tags/<str:name>/', TagView.as_view(), name='tag-detail'),
+    #
+    # # Connection URLs
+    # path('connections/', ConnectionView.as_view(), name='connection-list'),
 ]

@@ -1,37 +1,61 @@
-from django.db import models
-from django.core.exceptions import ValidationError
+from SmartDjango import E, Hc, models
+from django.utils.crypto import get_random_string
+
+
+class EvaluationError:
+    """Custom exception for evaluation errors."""
+    EXP_NOT_FOUND = E('Experiment not found', hc=Hc.NotFound)
+    TAG_NOT_FOUND = E('Tag not found', hc=Hc.NotFound)
+    EVALUATION_NOT_FOUND = E('Evaluation not found', hc=Hc.NotFound)
+    EVALUATION_CREATION = E('Evaluation creation failed', hc=Hc.InternalServerError)
+    ALREADY_COMPLETED = E('Experiment already completed', hc=Hc.BadRequest)
 
 
 class Evaluation(models.Model):
     signature = models.CharField(max_length=10, unique=True)
-    command = models.TextField()
+    command = models.TextField(unique=True)
     configuration = models.TextField()
-    log = models.TextField()
-    performance = models.TextField()
+
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
     comment = models.TextField(blank=True)
 
     @classmethod
-    def create_or_update(cls, signature, command, configuration, log, performance):
+    def create(cls, signature, command, configuration):
         """Creates or updates an evaluation entry."""
-        obj, created = cls.objects.update_or_create(
-            signature=signature,
-            defaults={
-                'command': command,
-                'configuration': configuration,
-                'log': log,
-                'performance': performance,
-            },
-        )
-        return obj
+        try:
+            return cls.objects.create(
+                signature=signature,
+                command=command,
+                configuration=configuration,
+            )
+        except Exception as e:
+            raise EvaluationError.EVALUATION_CREATION(debug_message=e)
 
     @classmethod
-    def remove(cls, signature):
-        """Removes an evaluation entry by signature."""
-        deleted_count, _ = cls.objects.filter(signature=signature).delete()
-        if deleted_count == 0:
-            raise ValidationError(f"Evaluation with signature '{signature}' not found.")
+    def create_or_get(cls, signature, command, configuration):
+        """Creates or retrieves an evaluation entry."""
+        try:
+            return cls.objects.get(signature=signature)
+        except cls.DoesNotExist:
+            return cls.create(
+                signature=signature,
+                command=command,
+                configuration=configuration,
+            )
+
+    @classmethod
+    def exist_by_signature(cls, signature):
+        """Check if an evaluation entry exists by signature."""
+        return cls.objects.filter(signature=signature).exists()
+
+    @classmethod
+    def get_by_signature(cls, signature):
+        """Retrieves an evaluation entry by signature."""
+        try:
+            return cls.objects.get(signature=signature)
+        except cls.DoesNotExist:
+            raise EvaluationError.EVALUATION_NOT_FOUND
 
     def get_tags(self):
         """Returns the tags associated with this evaluation."""
@@ -43,12 +67,11 @@ class Evaluation(models.Model):
             'signature': self.signature,
             'command': self.command,
             'configuration': self.configuration,
-            'log': self.log,
-            'performance': self.performance,
             'created_at': self.created_at.isoformat(),
             'modified_at': self.modified_at.isoformat(),
             'comment': self.comment,
             'tags': [tag.name for tag in self.get_tags()],
+            'experiments': [exp.json() for exp in self.experiment_set.all()],
         }
 
 
@@ -63,11 +86,17 @@ class Tag(models.Model):
         return obj
 
     @classmethod
+    def get_by_name(cls, name):
+        """Retrieves a tag by name."""
+        try:
+            return cls.objects.get(name=name)
+        except cls.DoesNotExist:
+            raise EvaluationError.TAG_NOT_FOUND
+
+    @classmethod
     def remove(cls, name):
-        """Removes a tag by name."""
-        deleted_count, _ = cls.objects.filter(name=name).delete()
-        if deleted_count == 0:
-            raise ValidationError(f"Tag with name '{name}' not found.")
+        tag = cls.get_by_name(name)
+        tag.delete()
 
     def add_evaluation(self, evaluation):
         """Associates an evaluation with the tag."""
@@ -78,4 +107,53 @@ class Tag(models.Model):
         return {
             'name': self.name,
             'evaluations': [evaluation.signature for evaluation in self.evaluations.all()],
+        }
+
+
+class Experiment(models.Model):
+    evaluation = models.ForeignKey(Evaluation, on_delete=models.CASCADE)
+    seed = models.IntegerField()
+    session = models.CharField(max_length=32, unique=True)
+    log = models.TextField(null=True, blank=True)
+    performance = models.TextField(null=True, blank=True)
+    is_completed = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    @classmethod
+    def create(cls, evaluation, seed):
+        exp = cls.objects.create(
+            evaluation=evaluation,
+            seed=seed,
+            session=get_random_string(length=32),
+        )
+        return exp
+
+    @classmethod
+    def get_by_session(cls, session):
+        """Retrieves an experiment by session."""
+        try:
+            return cls.objects.get(session=session)
+        except cls.DoesNotExist:
+            raise EvaluationError.EXP_NOT_FOUND
+
+    def complete(self, log, performance):
+        """Marks the experiment as completed."""
+        if self.is_completed:
+            raise EvaluationError.ALREADY_COMPLETED
+        self.log = log
+        self.performance = performance
+        self.is_completed = True
+        self.save()
+
+    def json(self):
+        """Serializes the experiment model to a dictionary."""
+        return {
+            'evaluation': self.evaluation.signature,
+            'seed': self.seed,
+            'session': self.session,
+            'log': self.log,
+            'performance': self.performance,
+            'is_completed': self.is_completed,
+            'created_at': self.created_at.isoformat(),
         }

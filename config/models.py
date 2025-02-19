@@ -1,8 +1,12 @@
 import warnings
 
 import django.db.utils
-from django.db import models
-from django.core.exceptions import ValidationError
+from SmartDjango import E, models, Hc
+
+
+@E.register()
+class ConfigError:
+    NOT_FOUND = E("Config key not found", hc=Hc.NotFound)
 
 
 class Config(models.Model):
@@ -15,7 +19,7 @@ class Config(models.Model):
         try:
             return cls.objects.get(key=key).value
         except cls.DoesNotExist:
-            raise ValidationError(f"Config key '{key}' not found.")
+            raise ConfigError.NOT_FOUND
         except django.db.utils.OperationalError:
             warnings.warn("Database is not ready yet. Please run migrations.")
 
@@ -30,10 +34,8 @@ class Config(models.Model):
 
     @classmethod
     def remove(cls, key):
-        """Remove a config entry by key."""
-        deleted_count, _ = cls.objects.filter(key=key).delete()
-        if deleted_count == 0:
-            raise ValidationError(f"Config key '{key}' not found.")
+        config = cls.objects.get(key=key)
+        config.delete()
 
     def json(self):
         """Serialize the config entry as a dictionary."""
