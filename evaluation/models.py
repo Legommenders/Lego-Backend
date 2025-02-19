@@ -177,6 +177,7 @@ class EvaluationP:
         signature, command, configuration = Evaluation.get_params(
             'signature', 'command', 'configuration')
     except Exception:
+        print('error occurs in finding evaluation params')
         signature, command, configuration = None, None, None
 
 
@@ -185,4 +186,5 @@ class ExperimentP:
         session, log, performance, seed, pid = Experiment.get_params(
             'session', 'log', 'performance', 'seed', 'pid')
     except Exception:
+        print('error occurs in finding experiment params')
         session, log, performance, seed, pid = None, None, None, None, None
