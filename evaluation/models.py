@@ -165,6 +165,9 @@ class Experiment(models.Model):
         self.is_completed = True
         self.save()
 
+    def _readable_created_at(self):
+        return self.created_at.isoformat()
+
     def json(self):
         return self.dictify('evaluation__signature->signature', 'seed', 'session', 'log', 'performance', 'is_completed', 'created_at', 'registered_pid')
 
