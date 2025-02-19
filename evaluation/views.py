@@ -1,14 +1,13 @@
 from SmartDjango import Analyse
-from SmartDjango.p import P
 from django.views import View
 
 from common.auth import Auth
-from evaluation.models import Evaluation, Experiment
+from evaluation.models import Evaluation, Experiment, EvaluationP, ExperimentP
 
 
 class EvaluationView(View):
     @staticmethod
-    @Analyse.r(q=[P('signature').set_null()])
+    @Analyse.r(q=[EvaluationP.signature.clone().null()])
     def get(r):
         signature = r.d.signature
         if signature:
@@ -18,7 +17,7 @@ class EvaluationView(View):
         return [evaluation.json() for evaluation in Evaluation.objects.all()]
 
     @staticmethod
-    @Analyse.r(b=['signature', 'command', 'configuration', 'seed'])
+    @Analyse.r(b=[EvaluationP.signature, EvaluationP.seed, EvaluationP.command, EvaluationP.configuration])
     @Auth.require_login
     def post(r):
         evaluation = Evaluation.create_or_get(
@@ -33,7 +32,7 @@ class EvaluationView(View):
         return experiment.session
 
     @staticmethod
-    @Analyse.r(b=['session', 'log', 'performance'])
+    @Analyse.r(b=[ExperimentP.session, ExperimentP.log, ExperimentP.performance])
     @Auth.require_login
     def put(r):
         experiment = Experiment.get_by_session(r.d.session)
@@ -44,7 +43,7 @@ class EvaluationView(View):
         return experiment.json()
 
     @staticmethod
-    @Analyse.r(b=['signature'])
+    @Analyse.r(b=[EvaluationP.signature])
     @Auth.require_login
     def delete(r):
         evaluation = Evaluation.get_by_signature(r.d.signature)

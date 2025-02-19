@@ -165,3 +165,12 @@ class Experiment(models.Model):
 
     def jsonl(self):
         return self.dictify('session', 'is_completed', 'created_at', 'seed', 'performance')
+
+
+class EvaluationP:
+    signature, command, configuration, seed = Evaluation.get_params(
+        'signature', 'command', 'configuration', 'seed')
+
+
+class ExperimentP:
+    session, log, performance = Experiment.get_params('session', 'log', 'performance')
