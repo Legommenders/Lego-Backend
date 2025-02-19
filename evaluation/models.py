@@ -173,10 +173,16 @@ class Experiment(models.Model):
 
 
 class EvaluationP:
-    signature, command, configuration = Evaluation.get_params(
-        'signature', 'command', 'configuration')
+    try:
+        signature, command, configuration = Evaluation.get_params(
+            'signature', 'command', 'configuration')
+    except Exception:
+        signature, command, configuration = None, None, None
 
 
 class ExperimentP:
-    session, log, performance, seed, pid = Experiment.get_params(
-        'session', 'log', 'performance', 'seed', 'pid')
+    try:
+        session, log, performance, seed, pid = Experiment.get_params(
+            'session', 'log', 'performance', 'seed', 'pid')
+    except Exception:
+        session, log, performance, seed, pid = None, None, None, None, None
