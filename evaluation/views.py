@@ -8,8 +8,8 @@ from evaluation.models import Evaluation, Experiment, EvaluationP, ExperimentP
 class EvaluationView(View):
     @staticmethod
     @Analyse.r(q=[EvaluationP.signature.clone().null()])
-    def get(r):
-        signature = r.d.signature
+    def get(request):
+        signature = request.d.signature
         if signature:
             evaluation = Evaluation.get_by_signature(signature)
             return evaluation.json()
@@ -19,19 +19,19 @@ class EvaluationView(View):
     @staticmethod
     @Analyse.r(b=[EvaluationP.signature, EvaluationP.command, EvaluationP.configuration])
     @Auth.require_login
-    def post(r):
+    def post(request):
         evaluation = Evaluation.create_or_get(
-            signature=r.d.signature,
-            command=r.d.command,
-            configuration=r.d.configuration,
+            signature=request.d.signature,
+            command=request.d.command,
+            configuration=request.d.configuration,
         )
         return evaluation.json()
 
     @staticmethod
     @Analyse.r(b=[EvaluationP.signature])
     @Auth.require_login
-    def delete(r):
-        evaluation = Evaluation.get_by_signature(r.d.signature)
+    def delete(request):
+        evaluation = Evaluation.get_by_signature(request.d.signature)
         evaluation.delete()
 
 
@@ -39,30 +39,30 @@ class ExperimentView(View):
     @staticmethod
     @Analyse.r(q=[ExperimentP.session])
     @Auth.require_login
-    def get(r):
-        session = r.d.session
+    def get(request):
+        session = request.d.session
         experiment = Experiment.get_by_session(session)
         return experiment.json()
 
     @staticmethod
     @Analyse.r(b=[EvaluationP.signature, ExperimentP.seed])
     @Auth.require_login
-    def post(r):
-        evaluation = Evaluation.get_by_signature(r.d.signature)
+    def post(request):
+        evaluation = Evaluation.get_by_signature(request.d.signature)
         experiment = Experiment.create_or_get(
             evaluation=evaluation,
-            seed=r.d.seed,
+            seed=request.d.seed,
         )
         return experiment.json()
 
     @staticmethod
     @Analyse.r(b=[ExperimentP.session, ExperimentP.log, ExperimentP.performance])
     @Auth.require_login
-    def put(r):
-        experiment = Experiment.get_by_session(r.d.session)
+    def put(request):
+        experiment = Experiment.get_by_session(request.d.session)
         experiment.complete(
-            log=r.d.log,
-            performance=r.d.performance,
+            log=request.d.log,
+            performance=request.d.performance,
         )
         return experiment.json()
 
@@ -71,7 +71,7 @@ class ExperimentRegisterView(View):
     @staticmethod
     @Analyse.r(q=[ExperimentP.session], b=[ExperimentP.pid])
     @Auth.require_login
-    def post(r):
-        experiment = Experiment.get_by_session(r.d.session)
-        experiment.register(r.d.pid)
+    def post(request):
+        experiment = Experiment.get_by_session(request.d.session)
+        experiment.register(request.d.pid)
         return experiment.json()
