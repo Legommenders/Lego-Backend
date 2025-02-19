@@ -132,6 +132,7 @@ class Experiment(models.Model):
     is_completed = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(auto_now=True)
 
     @classmethod
     def create(cls, evaluation, seed):
@@ -173,14 +174,17 @@ class Experiment(models.Model):
     def _readable_created_at(self):
         return self.created_at.isoformat()
 
+    def _readable_completed_at(self):
+        return self.completed_at.isoformat()
+
     def _readable_signature(self):
         return self.evaluation.signature
 
     def json(self):
-        return self.dictify('signature', 'seed', 'log', 'performance', 'is_completed', 'created_at', 'pid')
+        return self.dictify('signature', 'seed', 'log', 'performance', 'is_completed', 'created_at', 'completed_at', 'pid')
 
     def jsonl(self):
-        return self.dictify('is_completed', 'created_at', 'seed', 'performance', 'pid')
+        return self.dictify('is_completed', 'created_at', 'completed_at', 'seed', 'performance', 'pid')
 
 
 class EvaluationP:
