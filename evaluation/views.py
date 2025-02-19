@@ -26,11 +26,11 @@ class EvaluationView(View):
             command=r.d.command,
             configuration=r.d.configuration,
         )
-        experiment = Experiment.create(
+        experiment = Experiment.create_or_get(
             evaluation=evaluation,
             seed=r.d.seed,
         )
-        return experiment.json()
+        return experiment.session
 
     @staticmethod
     @Analyse.r(b=['session', 'log', 'performance'])

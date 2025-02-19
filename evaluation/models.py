@@ -130,6 +130,13 @@ class Experiment(models.Model):
         return exp
 
     @classmethod
+    def create_or_get(cls, evaluation, seed):
+        try:
+            return cls.objects.get(evaluation=evaluation, seed=seed)
+        except cls.DoesNotExist:
+            return cls.create(evaluation, seed)
+
+    @classmethod
     def get_by_session(cls, session):
         """Retrieves an experiment by session."""
         try:
@@ -151,7 +158,6 @@ class Experiment(models.Model):
         return {
             'evaluation': self.evaluation.signature,
             'seed': self.seed,
-            'session': self.session,
             'log': self.log,
             'performance': self.performance,
             'is_completed': self.is_completed,
