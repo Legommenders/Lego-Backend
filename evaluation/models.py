@@ -1,6 +1,8 @@
 from SmartDjango import E, Hc, models
 from django.utils.crypto import get_random_string
 
+from common import handler
+
 
 class EvaluationError:
     """Custom exception for evaluation errors."""
@@ -69,6 +71,9 @@ class Evaluation(models.Model):
 
     def _readable_experiments(self):
         return [exp.jsonl() for exp in self.experiment_set.all()]
+
+    def _readable_configuration(self):
+        return handler.json_loads(self.configuration)
 
     def json(self):
         return self.dictify('signature', 'command', 'configuration', 'created_at', 'modified_at', 'comment', 'experiments')
