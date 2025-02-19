@@ -6,7 +6,7 @@ from django.http import HttpRequest, JsonResponse
 from common.space import Space
 
 
-@E.register()
+@E.register(id_processor=E.idp_cls_prefix())
 class AuthError:
     TOKEN = E('Unauthorized access. Please provide a valid token.', hc=Hc.Unauthorized)
 

@@ -4,6 +4,7 @@ from django.utils.crypto import get_random_string
 from common import handler
 
 
+@E.register(id_processor=E.idp_cls_prefix())
 class EvaluationError:
     """Custom exception for evaluation errors."""
     EXP_NOT_FOUND = E('Experiment not found', hc=Hc.NotFound)
@@ -172,7 +173,7 @@ class Experiment(models.Model):
         return self.evaluation.signature
 
     def json(self):
-        return self.dictify('signature', 'seed', 'session', 'log', 'performance', 'is_completed', 'created_at', 'registered_pid')
+        return self.dictify('signature', 'seed', 'session', 'log', 'performance', 'is_completed', 'created_at', 'pid')
 
     def jsonl(self):
         return self.dictify('session', 'is_completed', 'created_at', 'seed', 'performance')

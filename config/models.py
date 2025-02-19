@@ -4,7 +4,7 @@ import django.db.utils
 from SmartDjango import E, models, Hc
 
 
-@E.register()
+@E.register(id_processor=E.idp_cls_prefix())
 class ConfigError:
     NOT_FOUND = E("Config key not found", hc=Hc.NotFound)
 
