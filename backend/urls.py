@@ -19,11 +19,11 @@ from evaluation.views import EvaluationView, ExperimentView, ExperimentRegisterV
 urlpatterns = [
     # Evaluation URLs
     path('evaluations/', EvaluationView.as_view(), name='evaluation-list'),
-    path('evaluations/<str:signature>/', EvaluationView.as_view(), name='evaluation-detail'),
+    path('evaluations/<str:signature>', EvaluationView.as_view(), name='evaluation-detail'),
 
     path('experiments/<str:session>', ExperimentView.as_view(), name='experiment-info'),
     path('experiments/', ExperimentView.as_view(), name='experiment-list'),
-    path('experiments/<str:session>/register/', ExperimentRegisterView.as_view(), name='experiment-register'),
+    path('experiments/<str:session>/register', ExperimentRegisterView.as_view(), name='experiment-register'),
 
     # # Tag URLs
     # path('tags/', TagView.as_view(), name='tag-list'),
