@@ -69,7 +69,7 @@ class ExperimentView(View):
 
 class ExperimentRegisterView(View):
     @staticmethod
-    @Analyse.r(q=[ExperimentP.session], b=[ExperimentP.pid])
+    @Analyse.r(a=[ExperimentP.session], b=[ExperimentP.pid])
     @Auth.require_login
     def post(request):
         experiment = Experiment.get_by_session(request.d.session)
