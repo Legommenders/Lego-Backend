@@ -12,6 +12,7 @@ class EvaluationError:
     EVALUATION_NOT_FOUND = E('Evaluation not found', hc=Hc.NotFound)
     EVALUATION_CREATION = E('Evaluation creation failed', hc=Hc.InternalServerError)
     ALREADY_COMPLETED = E('Experiment already completed', hc=Hc.BadRequest)
+    EMPTY_QUERY = E('Empty query', hc=Hc.BadRequest)
 
 
 class Evaluation(models.Model):
@@ -75,6 +76,9 @@ class Evaluation(models.Model):
 
     def _readable_configuration(self):
         return handler.json_loads(self.configuration)
+
+    def jsonl(self):
+        return self.dictify('signature', 'command', 'created_at', 'modified_at', 'comment', 'experiments')
 
     def json(self):
         return self.dictify('signature', 'command', 'configuration', 'created_at', 'modified_at', 'comment', 'experiments')
@@ -173,7 +177,7 @@ class Experiment(models.Model):
         return self.evaluation.signature
 
     def json(self):
-        return self.dictify('signature', 'seed', 'session', 'log', 'performance', 'is_completed', 'created_at', 'pid')
+        return self.dictify('signature', 'seed', 'log', 'performance', 'is_completed', 'created_at', 'pid')
 
     def jsonl(self):
         return self.dictify('session', 'is_completed', 'created_at', 'seed', 'performance')
