@@ -40,7 +40,11 @@ class Evaluation(models.Model):
     def create_or_get(cls, signature, command, configuration):
         """Creates or retrieves an evaluation entry."""
         try:
-            return cls.objects.get(signature=signature)
+            evaluation = cls.objects.get(command=command)
+            if evaluation.signature != signature:
+                evaluation.signature = signature
+                evaluation.save()
+            return evaluation
         except cls.DoesNotExist:
             return cls.create(
                 signature=signature,
