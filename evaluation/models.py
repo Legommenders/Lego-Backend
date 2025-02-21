@@ -79,7 +79,9 @@ class Evaluation(models.Model):
         return [exp.jsonl() for exp in self.experiment_set.all()]
 
     def _readable_configuration(self):
-        return handler.json_loads(self.configuration)
+        if self.configuration:
+            return handler.json_loads(self.configuration)
+        return None
 
     def jsonl(self):
         return self.dictify('signature', 'command', 'created_at', 'modified_at', 'comment', 'experiments')
@@ -183,6 +185,11 @@ class Experiment(models.Model):
 
     def _readable_signature(self):
         return self.evaluation.signature
+
+    def _readable_performance(self):
+        if self.performance:
+            return handler.json_loads(self.performance)
+        return None
 
     def json(self):
         return self.dictify('signature', 'seed', 'log', 'performance', 'is_completed', 'created_at', 'completed_at', 'pid')
