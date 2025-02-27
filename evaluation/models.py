@@ -44,6 +44,7 @@ class Evaluation(models.Model):
             evaluation = cls.objects.get(command=command)
             if evaluation.signature != signature:
                 evaluation.signature = signature
+                evaluation.configuration = configuration
                 evaluation.save()
             return evaluation
         except cls.DoesNotExist:
