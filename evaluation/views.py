@@ -1,4 +1,6 @@
 from SmartDjango import Analyse
+from SmartDjango.p import P
+from django.core.paginator import Paginator
 from django.views import View
 
 from common.auth import Auth
@@ -7,14 +9,30 @@ from evaluation.models import Evaluation, Experiment, EvaluationP, ExperimentP, 
 
 class EvaluationView(View):
     @staticmethod
-    @Analyse.r(a=[EvaluationP.signature.clone().null()])
+    @Analyse.r(
+        a=[EvaluationP.signature.clone().null()],
+        q=[
+            P('page').set_null().set_default(1).process(int),
+            P('page_size').set_null().set_default(50).process(int)
+        ]
+    )
     def get(r):
         signature = r.d.signature
         if signature:
             evaluation = Evaluation.get_by_signature(signature)
             return evaluation.json()
 
-        return [evaluation.jsonl() for evaluation in Evaluation.objects.all()]
+        # return [evaluation.jsonl() for evaluation in Evaluation.objects.all()]
+        evaluations = Evaluation.objects.all()
+        paginator = Paginator(evaluations, r.d.page_size)
+        page = r.d.page if r.d.page <= paginator.num_pages else paginator.num_pages
+        current_page = paginator.page(page)
+        return {
+            'evaluations': [evaluation.json() for evaluation in current_page],
+            'page': page,
+            'total_page': paginator.num_pages,
+            'total': paginator.count,
+        }
 
     @staticmethod
     @Analyse.r(b=[EvaluationP.signature, EvaluationP.command, EvaluationP.configuration])
