@@ -141,6 +141,7 @@ class Experiment(models.Model, Dictify):
     session = models.CharField(max_length=32, unique=True)
     log = models.TextField(null=True, blank=True)
     performance = models.TextField(null=True, blank=True)
+    summary = models.TextField(null=True, blank=True)
     pid = models.IntegerField(null=True, blank=True)
     is_completed = models.BooleanField(default=False)
 
@@ -204,12 +205,18 @@ class Experiment(models.Model, Dictify):
         return None
 
     def json(self):
-        return self.dictify('signature', 'seed', 'performance', 'is_completed', 'created_at', 'completed_at', 'pid')
+        return self.dictify('signature', 'seed', 'performance', 'is_completed', 'created_at', 'completed_at', 'pid', 'summary')
 
     def jsonl(self):
-        return self.dictify('is_completed', 'created_at', 'completed_at', 'seed', 'performance', 'pid')
+        return self.dictify('is_completed', 'created_at', 'completed_at', 'seed', 'performance', 'pid', 'summary')
 
     def parse_log(self):
+        if self.summary:
+            return
+
+        if not self.performance:
+            return
+
         runtime_pattern = r'^\[(\d{2}:\d{2}:\d{2})\]'  # 匹配日志运行时间
         start_time_pattern = r'START TIME:\s+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)'  # 匹配绝对起始时间
         lr_line_pattern = r'\|Trainer\| use single lr:'  # 预备时间终点
@@ -251,7 +258,6 @@ class Experiment(models.Model, Dictify):
                 # 捕获每个 epoch 的运行时间戳
                 epoch_match = re.search(epoch_line_pattern, line)
                 if epoch_match:
-                    epoch_num = int(epoch_match.group(1))
                     epoch_times.append(current_runtime)
 
             # valid set 指标
@@ -269,13 +275,14 @@ class Experiment(models.Model, Dictify):
         valid_metrics = list(map(float, valid_metrics))
 
         feature = dict(
-            start_time=start_time,
-            final_time=final_runtime,
-            prep_time=prep_time,
+            start_time=start_time.timestamp(),
+            final_time=final_runtime.total_seconds(),
+            prep_time=prep_time.total_seconds(),
             total_epochs=len(epoch_times) - 1,
             epoch_durations=epoch_durations,
             valid_metrics=valid_metrics,
         )
 
-        print(feature)
+        self.summary = handler.json_dumps(feature)
+        self.save()
 
