@@ -199,6 +199,11 @@ class Experiment(models.Model, Dictify):
             return handler.json_loads(self.performance)
         return None
 
+    def _dictify_summary(self):
+        if self.summary:
+            return handler.json_loads(self.summary)
+        return None
+
     def prettify_log(self):
         if self.log:
             return self.log.split('\n')
@@ -208,9 +213,9 @@ class Experiment(models.Model, Dictify):
         return self.dictify('signature', 'seed', 'performance', 'is_completed', 'created_at', 'completed_at', 'pid', 'summary')
 
     def jsonl(self):
-        return self.dictify('is_completed', 'created_at', 'completed_at', 'seed', 'performance', 'pid', 'summary')
+        return self.dictify('is_completed', 'created_at', 'completed_at', 'seed', 'performance', 'pid')
 
-    def parse_log(self):
+    def summarize(self):
         if self.summary:
             return
 

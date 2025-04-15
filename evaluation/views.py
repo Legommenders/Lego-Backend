@@ -134,9 +134,10 @@ class LogView(View):
         return experiment.prettify_log()
 
 
-class LogAnalyseView(View):
+class LogSummarizeView(View):
     @staticmethod
     def get(request: Request):
         for experiment in Experiment.objects.all():
-            experiment.parse_log()
-            return OK
+            experiment.summarize()
+
+        return OK
