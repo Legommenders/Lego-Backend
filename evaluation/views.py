@@ -10,7 +10,7 @@ from evaluation.params import EvaluationParams, ExperimentParams
 
 class EvaluationView(View):
     @staticmethod
-    @analyse.argument(EvaluationParams.signature.copy().null().default(None))
+    @analyse.argument(EvaluationParams.signature.copy().default(None, as_final=True))
     @analyse.query(
         Validator('page').default(1).to(int).to(lambda x: max(x, 1)),
         Validator('page_size').default(50).to(int).to(lambda x: min(max(x, 10), 100))
@@ -60,9 +60,9 @@ class EvaluationView(View):
 class ExperimentView(View):
     @staticmethod
     @analyse.query(
-        ExperimentParams.session.copy().null().default(None),
-        ExperimentParams.seed.copy().null().default(None),
-        EvaluationParams.signature.copy().null().default(None)
+        ExperimentParams.session.copy().default(None, as_final=True),
+        ExperimentParams.seed.copy().default(None, as_final=True),
+        EvaluationParams.signature.copy().default(None, as_final=True)
     )
     def get(request: Request):
         session = request.query.session
@@ -117,9 +117,9 @@ class ExperimentRegisterView(View):
 class LogView(View):
     @staticmethod
     @analyse.query(
-        ExperimentParams.session.copy().null().default(None),
-        ExperimentParams.seed.copy().null().default(None),
-        EvaluationParams.signature.copy().null().default(None)
+        ExperimentParams.session.copy().default(None, as_final=True),
+        ExperimentParams.seed.copy().default(None, as_final=True),
+        EvaluationParams.signature.copy().default(None, as_final=True)
     )
     def get(request: Request):
         session = request.query.session
