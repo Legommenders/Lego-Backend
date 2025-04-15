@@ -60,9 +60,9 @@ class EvaluationView(View):
 class ExperimentView(View):
     @staticmethod
     @analyse.query(
-        ExperimentParams.session.copy().null(),
-        ExperimentParams.seed.copy().null(),
-        EvaluationParams.signature.copy().null()
+        ExperimentParams.session.copy().null().default(None),
+        ExperimentParams.seed.copy().null().default(None),
+        EvaluationParams.signature.copy().null().default(None)
     )
     def get(request: Request):
         session = request.query.session
@@ -117,9 +117,9 @@ class ExperimentRegisterView(View):
 class LogView(View):
     @staticmethod
     @analyse.query(
-        ExperimentParams.session.copy().null(),
-        ExperimentParams.seed.copy().null(),
-        EvaluationParams.signature.copy().null()
+        ExperimentParams.session.copy().null().default(None),
+        ExperimentParams.seed.copy().null().default(None),
+        EvaluationParams.signature.copy().null().default(None)
     )
     def get(request: Request):
         session = request.query.session
