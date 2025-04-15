@@ -1,22 +1,24 @@
-from SmartDjango import E, Hc, models
+from diq import Dictify
+from django.db import models
 from django.utils.crypto import get_random_string
+from smartdjango import Error, Code
 
 from common import handler
 from common.space import Space
 
 
-@E.register(id_processor=E.idp_cls_prefix())
-class EvaluationError:
+@Error.register
+class EvaluationErrors:
     """Custom exception for evaluation errors."""
-    EXP_NOT_FOUND = E('Experiment not found', hc=Hc.NotFound)
-    TAG_NOT_FOUND = E('Tag not found', hc=Hc.NotFound)
-    EVALUATION_NOT_FOUND = E('Evaluation not found', hc=Hc.NotFound)
-    EVALUATION_CREATION = E('Evaluation creation failed', hc=Hc.InternalServerError)
-    ALREADY_COMPLETED = E('Experiment already completed', hc=Hc.BadRequest)
-    EMPTY_QUERY = E('Empty query', hc=Hc.BadRequest)
+    EXP_NOT_FOUND = Error('Experiment not found', code=Code.NotFound)
+    TAG_NOT_FOUND = Error('Tag not found', code=Code.NotFound)
+    EVALUATION_NOT_FOUND = Error('Evaluation not found', code=Code.NotFound)
+    EVALUATION_CREATION = Error('Evaluation creation failed', code=Code.InternalServerError)
+    ALREADY_COMPLETED = Error('Experiment already completed', code=Code.BadRequest)
+    EMPTY_QUERY = Error('Empty query', code=Code.BadRequest)
 
 
-class Evaluation(models.Model):
+class Evaluation(models.Model, Dictify):
     signature = models.CharField(max_length=10, unique=True)
     command = models.TextField(unique=True)
     configuration = models.TextField()
@@ -35,7 +37,7 @@ class Evaluation(models.Model):
                 configuration=configuration,
             )
         except Exception as e:
-            raise EvaluationError.EVALUATION_CREATION(debug_message=e)
+            raise EvaluationErrors.EVALUATION_CREATION(debug_message=e)
 
     @classmethod
     def create_or_get(cls, signature, command, configuration):
@@ -65,7 +67,7 @@ class Evaluation(models.Model):
         try:
             return cls.objects.get(signature=signature)
         except cls.DoesNotExist:
-            raise EvaluationError.EVALUATION_NOT_FOUND
+            raise EvaluationErrors.EVALUATION_NOT_FOUND
 
     def get_tags(self):
         """Returns the tags associated with this evaluation."""
@@ -92,7 +94,7 @@ class Evaluation(models.Model):
         return self.dictify('signature', 'command', 'configuration', 'created_at', 'modified_at', 'comment', 'experiments')
 
 
-class Tag(models.Model):
+class Tag(models.Model, Dictify):
     name = models.CharField(max_length=50, unique=True)
     evaluations = models.ManyToManyField(Evaluation, related_name='tags')
 
@@ -108,7 +110,7 @@ class Tag(models.Model):
         try:
             return cls.objects.get(name=name)
         except cls.DoesNotExist:
-            raise EvaluationError.TAG_NOT_FOUND
+            raise EvaluationErrors.TAG_NOT_FOUND
 
     @classmethod
     def remove(cls, name):
@@ -130,7 +132,7 @@ class Tag(models.Model):
         return self.dictify('name')
 
 
-class Experiment(models.Model):
+class Experiment(models.Model, Dictify):
     evaluation = models.ForeignKey(Evaluation, on_delete=models.CASCADE)
     seed = models.IntegerField()
     session = models.CharField(max_length=32, unique=True)
@@ -164,7 +166,7 @@ class Experiment(models.Model):
         try:
             return cls.objects.get(session=session)
         except cls.DoesNotExist:
-            raise EvaluationError.EXP_NOT_FOUND
+            raise EvaluationErrors.EXP_NOT_FOUND
 
     def register(self, pid):
         self.pid = pid
@@ -173,7 +175,7 @@ class Experiment(models.Model):
     def complete(self, log, performance):
         """Marks the experiment as completed."""
         if self.is_completed:
-            raise EvaluationError.ALREADY_COMPLETED
+            raise EvaluationErrors.ALREADY_COMPLETED
         self.log = log
         self.performance = performance
         self.is_completed = True
@@ -193,26 +195,13 @@ class Experiment(models.Model):
             return handler.json_loads(self.performance)
         return None
 
+    def prettify_log(self):
+        if self.log:
+            return self.log.split('\n')
+        return None
+
     def json(self):
-        return self.dictify('signature', 'seed', 'log', 'performance', 'is_completed', 'created_at', 'completed_at', 'pid')
+        return self.dictify('signature', 'seed', 'performance', 'is_completed', 'created_at', 'completed_at', 'pid')
 
     def jsonl(self):
         return self.dictify('is_completed', 'created_at', 'completed_at', 'seed', 'performance', 'pid')
-
-
-class EvaluationP:
-    try:
-        signature, command, configuration = Evaluation.get_params(
-            'signature', 'command', 'configuration')
-    except Exception:
-        print('error occurs in finding evaluation params')
-        signature, command, configuration = None, None, None
-
-
-class ExperimentP:
-    try:
-        session, log, performance, seed, pid = Experiment.get_params(
-            'session', 'log', 'performance', 'seed', 'pid')
-    except Exception:
-        print('error occurs in finding experiment params')
-        session, log, performance, seed, pid = None, None, None, None, None

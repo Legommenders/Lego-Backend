@@ -1,105 +1,134 @@
-from SmartDjango import Analyse
-from SmartDjango.p import P
 from django.core.paginator import Paginator
 from django.views import View
+from smartdjango import analyse, Validator, OK
+from smartdjango.analyse import Request
 
 from common.auth import Auth
-from evaluation.models import Evaluation, Experiment, EvaluationP, ExperimentP, EvaluationError
+from evaluation.models import Evaluation, Experiment, EvaluationErrors
+from evaluation.params import EvaluationParams, ExperimentParams
 
 
 class EvaluationView(View):
     @staticmethod
-    @Analyse.r(
-        a=[EvaluationP.signature.clone().null()],
-        q=[
-            P('page').set_null().set_default(1).process(int),
-            P('page_size').set_null().set_default(50).process(int)
-        ]
+    @analyse.argument(EvaluationParams.signature.copy().null().default(None))
+    @analyse.query(
+        Validator('page').default(1).to(int).to(lambda x: max(x, 1)),
+        Validator('page_size').default(50).to(int).to(lambda x: min(max(x, 10), 100))
     )
-    def get(r):
-        signature = r.d.signature
+    def get(request: Request):
+        signature = request.argument.signature
         if signature:
             evaluation = Evaluation.get_by_signature(signature)
             return evaluation.json()
 
         # return [evaluation.jsonl() for evaluation in Evaluation.objects.all()]
         evaluations = Evaluation.objects.all()
-        paginator = Paginator(evaluations, r.d.page_size)
-        page = r.d.page if r.d.page <= paginator.num_pages else paginator.num_pages
+        paginator = Paginator(evaluations, request.query.page_size)
+        page = request.query.page if request.query.page <= paginator.num_pages else paginator.num_pages
         current_page = paginator.page(page)
         return {
-            'evaluations': [evaluation.json() for evaluation in current_page],
+            'evaluations': [evaluation.jsonl() for evaluation in current_page],
             'page': page,
             'total_page': paginator.num_pages,
             'total': paginator.count,
         }
 
     @staticmethod
-    @Analyse.r(b=[EvaluationP.signature, EvaluationP.command, EvaluationP.configuration])
+    @analyse.body(
+        EvaluationParams.signature,
+        EvaluationParams.command,
+        EvaluationParams.configuration
+    )
     @Auth.require_login
-    def post(r):
+    def post(request: Request):
         evaluation = Evaluation.create_or_get(
-            signature=r.d.signature,
-            command=r.d.command,
-            configuration=r.d.configuration,
+            signature=request.body.signature,
+            command=request.body.command,
+            configuration=request.body.configuration,
         )
         return evaluation.json()
 
     @staticmethod
-    @Analyse.r(a=[EvaluationP.signature])
+    @analyse.argument(EvaluationParams.signature)
     @Auth.require_login
-    def delete(r):
-        evaluation = Evaluation.get_by_signature(r.d.signature)
+    def delete(request: Request):
+        evaluation = Evaluation.get_by_signature(request.argument.signature)
         evaluation.delete()
+        return OK
 
 
 class ExperimentView(View):
     @staticmethod
-    @Analyse.r(q=[
-        ExperimentP.session.clone().null(),
-        ExperimentP.seed.clone().null().process(int, begin=True),
-        EvaluationP.signature.clone().null()
-    ])
-    def get(r):
-        session = r.d.session
-        signature, seed = r.d.signature, r.d.seed
+    @analyse.query(
+        ExperimentParams.session.copy().null(),
+        ExperimentParams.seed.copy().null(),
+        EvaluationParams.signature.copy().null()
+    )
+    def get(request: Request):
+        session = request.query.session
+        signature, seed = request.query.signature, request.query.seed
         if session:
             experiment = Experiment.get_by_session(session)
         elif signature and seed is not None:
             evaluation = Evaluation.get_by_signature(signature)
             experiment = Experiment.create_or_get(evaluation, seed)
         else:
-            raise EvaluationError.EMPTY_QUERY
+            raise EvaluationErrors.EMPTY_QUERY
         return experiment.json()
 
     @staticmethod
-    @Analyse.r(b=[EvaluationP.signature, ExperimentP.seed])
+    @analyse.body(EvaluationParams.signature, ExperimentParams.seed)
     @Auth.require_login
-    def post(r):
-        evaluation = Evaluation.get_by_signature(r.d.signature)
+    def post(request: Request):
+        evaluation = Evaluation.get_by_signature(request.body.signature)
         experiment = Experiment.create_or_get(
             evaluation=evaluation,
-            seed=r.d.seed,
+            seed=request.body.seed,
         )
         return experiment.session
 
     @staticmethod
-    @Analyse.r(b=[ExperimentP.session, ExperimentP.log, ExperimentP.performance])
+    @analyse.body(
+        ExperimentParams.session,
+        ExperimentParams.log,
+        ExperimentParams.performance
+    )
     @Auth.require_login
-    def put(r):
-        experiment = Experiment.get_by_session(r.d.session)
+    def put(request: Request):
+        experiment = Experiment.get_by_session(request.body.session)
         experiment.complete(
-            log=r.d.log,
-            performance=r.d.performance,
+            log=request.body.log,
+            performance=request.body.performance,
         )
         return experiment.json()
 
 
 class ExperimentRegisterView(View):
     @staticmethod
-    @Analyse.r(a=[ExperimentP.session], b=[ExperimentP.pid])
+    @analyse.argument(ExperimentParams.session)
+    @analyse.body(ExperimentParams.pid)
     @Auth.require_login
-    def post(r):
-        experiment = Experiment.get_by_session(r.d.session)
-        experiment.register(r.d.pid)
+    def post(request: Request):
+        experiment = Experiment.get_by_session(request.argument.session)
+        experiment.register(request.body.pid)
         return experiment.json()
+
+
+class LogView(View):
+    @staticmethod
+    @analyse.query(
+        ExperimentParams.session.copy().null(),
+        ExperimentParams.seed.copy().null(),
+        EvaluationParams.signature.copy().null()
+    )
+    def get(request: Request):
+        session = request.query.session
+        signature, seed = request.query.signature, request.query.seed
+        if session:
+            experiment = Experiment.get_by_session(session)
+        elif signature and seed is not None:
+            evaluation = Evaluation.get_by_signature(signature)
+            experiment = Experiment.create_or_get(evaluation, seed)
+        else:
+            raise EvaluationErrors.EMPTY_QUERY
+        return experiment.prettify_log()

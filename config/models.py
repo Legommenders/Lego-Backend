@@ -1,15 +1,17 @@
 import warnings
 
 import django.db.utils
-from SmartDjango import E, models, Hc
+from diq import Dictify
+from django.db import models
+from smartdjango import Error, Code
 
 
-@E.register(id_processor=E.idp_cls_prefix())
-class ConfigError:
-    NOT_FOUND = E("Config key not found", hc=Hc.NotFound)
+@Error.register
+class ConfigErrors:
+    NOT_FOUND = Error("Config key not found", code=Code.NotFound)
 
 
-class Config(models.Model):
+class Config(models.Model, Dictify):
     key = models.CharField(max_length=50, unique=True)
     value = models.TextField()
 
@@ -19,7 +21,7 @@ class Config(models.Model):
         try:
             return cls.objects.get(key=key).value
         except cls.DoesNotExist:
-            raise ConfigError.NOT_FOUND
+            raise ConfigErrors.NOT_FOUND
         except django.db.utils.OperationalError:
             warnings.warn("Database is not ready yet. Please run migrations.")
 
@@ -39,7 +41,4 @@ class Config(models.Model):
 
     def json(self):
         """Serialize the config entry as a dictionary."""
-        return {
-            "key": self.key,
-            "value": self.value
-        }
+        return self.dictify('key', 'value')
