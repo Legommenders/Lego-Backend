@@ -132,3 +132,11 @@ class LogView(View):
         else:
             raise EvaluationErrors.EMPTY_QUERY
         return experiment.prettify_log()
+
+
+class LogAnalyseView(View):
+    @staticmethod
+    def get(request: Request):
+        for experiment in Experiment.objects.all():
+            experiment.parse_log()
+            return OK

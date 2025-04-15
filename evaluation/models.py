@@ -1,3 +1,6 @@
+import re
+from datetime import timedelta, datetime
+
 from diq import Dictify
 from django.db import models
 from django.utils.crypto import get_random_string
@@ -205,3 +208,74 @@ class Experiment(models.Model, Dictify):
 
     def jsonl(self):
         return self.dictify('is_completed', 'created_at', 'completed_at', 'seed', 'performance', 'pid')
+
+    def parse_log(self):
+        runtime_pattern = r'^\[(\d{2}:\d{2}:\d{2})\]'  # 匹配日志运行时间
+        start_time_pattern = r'START TIME:\s+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)'  # 匹配绝对起始时间
+        lr_line_pattern = r'\|Trainer\| use single lr:'  # 预备时间终点
+        epoch_line_pattern = r'\|BaseLego\| \[epoch (\d+)\]'  # 每个 epoch 的日志行
+        valid_metric_pattern = r'\|BaseLego\| \[epoch \d+\] GAUC (\d+.\d+)'  # valid set 的指标行
+
+        def parse_runtime(s):
+            h, m, sec = map(int, s.split(":"))
+            return timedelta(hours=h, minutes=m, seconds=sec)
+
+        start_time = None
+        final_runtime = timedelta()
+        prep_time = None
+        prep_found = False
+
+        epoch_times = []  # 存储每个 epoch 开始时间（相对）
+        valid_metrics = []  # 存储 valid set 行
+
+        lines = self.prettify_log()
+        for line in lines:
+            # 匹配 START TIME
+            if not start_time:
+                match = re.search(start_time_pattern, line)
+                if match:
+                    start_time = datetime.strptime(match.group(1), "%Y-%m-%d %H:%M:%S.%f")
+
+            # 匹配运行时间
+            runtime_match = re.search(runtime_pattern, line)
+            if runtime_match:
+                current_runtime = parse_runtime(runtime_match.group(1))
+                final_runtime = current_runtime  # 更新最后运行时间
+
+                # 捕获“use single lr:”之前的时间
+                if not prep_found and re.search(lr_line_pattern, line):
+                    prep_time = current_runtime
+                    prep_found = True
+                    epoch_times.append(prep_time)
+
+                # 捕获每个 epoch 的运行时间戳
+                epoch_match = re.search(epoch_line_pattern, line)
+                if epoch_match:
+                    epoch_num = int(epoch_match.group(1))
+                    epoch_times.append(current_runtime)
+
+            # valid set 指标
+            valid_match = re.search(valid_metric_pattern, line)
+            if valid_match:
+                valid_metrics.append(valid_match.group(1).strip())
+
+        # 计算每个 epoch 的训练时长（用时间差）
+        epoch_durations = []
+        for i in range(1, len(epoch_times)):
+            duration = (epoch_times[i] - epoch_times[i - 1]).total_seconds()
+            epoch_durations.append(duration)
+
+        epoch_durations = list(map(int, epoch_durations))
+        valid_metrics = list(map(float, valid_metrics))
+
+        feature = dict(
+            start_time=start_time,
+            final_time=final_runtime,
+            prep_time=prep_time,
+            total_epochs=len(epoch_times) - 1,
+            epoch_durations=epoch_durations,
+            valid_metrics=valid_metrics,
+        )
+
+        print(feature)
+
