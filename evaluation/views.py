@@ -61,7 +61,7 @@ class ExperimentView(View):
     @staticmethod
     @analyse.query(
         ExperimentParams.session.copy().default(None, as_final=True),
-        ExperimentParams.seed.copy().default(None, as_final=True),
+        ExperimentParams.seed.copy().default(None, as_final=True).to(int),
         EvaluationParams.signature.copy().default(None, as_final=True)
     )
     def get(request: Request):
@@ -118,7 +118,7 @@ class LogView(View):
     @staticmethod
     @analyse.query(
         ExperimentParams.session.copy().default(None, as_final=True),
-        ExperimentParams.seed.copy().default(None, as_final=True),
+        ExperimentParams.seed.copy().default(None, as_final=True).to(int),
         EvaluationParams.signature.copy().default(None, as_final=True)
     )
     def get(request: Request):
