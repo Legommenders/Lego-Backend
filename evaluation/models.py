@@ -73,16 +73,16 @@ class Evaluation(models.Model, Dictify):
         """Returns the tags associated with this evaluation."""
         return self.tags.all()
 
-    def _readable_created_at(self):
+    def _dictify_created_at(self):
         return self.created_at.astimezone(Space.tz).isoformat()
 
-    def _readable_modified_at(self):
+    def _dictify_modified_at(self):
         return self.modified_at.astimezone(Space.tz).isoformat()
 
-    def _readable_experiments(self):
+    def _dictify_experiments(self):
         return [exp.jsonl() for exp in self.experiment_set.all()]
 
-    def _readable_configuration(self):
+    def _dictify_configuration(self):
         if self.configuration:
             return handler.json_loads(self.configuration)
         return None
@@ -121,7 +121,7 @@ class Tag(models.Model, Dictify):
         """Associates an evaluation with the tag."""
         self.evaluations.add(evaluation)
 
-    def _readable_evaluations(self):
+    def _dictify_evaluations(self):
         return [evaluation.signature for evaluation in self.evaluations.all()]
 
     def json(self):
@@ -181,16 +181,16 @@ class Experiment(models.Model, Dictify):
         self.is_completed = True
         self.save()
 
-    def _readable_created_at(self):
+    def _dictify_created_at(self):
         return self.created_at.astimezone(Space.tz).isoformat()
 
-    def _readable_completed_at(self):
+    def _dictify_completed_at(self):
         return self.completed_at.astimezone(Space.tz).isoformat()
 
-    def _readable_signature(self):
+    def _dictify_signature(self):
         return self.evaluation.signature
 
-    def _readable_performance(self):
+    def _dictify_performance(self):
         if self.performance:
             return handler.json_loads(self.performance)
         return None
