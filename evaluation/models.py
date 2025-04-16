@@ -172,6 +172,15 @@ class Experiment(models.Model, Dictify):
         except cls.DoesNotExist:
             raise EvaluationErrors.EXP_NOT_FOUND
 
+    @classmethod
+    def get(cls, signature, seed, session):
+        if session:
+            return cls.get_by_session(session)
+        elif signature and seed is not None:
+            evaluation = Evaluation.get_by_signature(signature)
+            return cls.create_or_get(evaluation, seed)
+        raise EvaluationErrors.EMPTY_QUERY
+
     def register(self, pid):
         self.pid = pid
         self.save()

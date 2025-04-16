@@ -1,0 +1,4 @@
+django
+smartdjango>4.0.0
+diq
+django-cors-headers

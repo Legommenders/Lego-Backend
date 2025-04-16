@@ -4,18 +4,17 @@ from smartdjango import analyse, Validator, OK
 from smartdjango.analyse import Request
 
 from common.auth import Auth
-from evaluation.models import Evaluation, Experiment, EvaluationErrors
+from evaluation.models import Evaluation, Experiment
 from evaluation.params import EvaluationParams, ExperimentParams
 
 
 class EvaluationView(View):
-    @staticmethod
     @analyse.argument(EvaluationParams.signature.copy().default(None, as_final=True))
     @analyse.query(
         Validator('page').default(1).to(int).to(lambda x: max(x, 1)),
         Validator('page_size').default(50).to(int).to(lambda x: min(max(x, 10), 100))
     )
-    def get(request: Request):
+    def get(self, request: Request, *args, **kwargs):
         signature = request.argument.signature
         if signature:
             evaluation = Evaluation.get_by_signature(signature)
@@ -33,14 +32,13 @@ class EvaluationView(View):
             'total': paginator.count,
         }
 
-    @staticmethod
     @analyse.body(
         EvaluationParams.signature,
         EvaluationParams.command,
         EvaluationParams.configuration
     )
     @Auth.require_login
-    def post(request: Request):
+    def post(self, request: Request):
         evaluation = Evaluation.create_or_get(
             signature=request.body.signature,
             command=request.body.command,
@@ -48,38 +46,29 @@ class EvaluationView(View):
         )
         return evaluation.json()
 
-    @staticmethod
     @analyse.argument(EvaluationParams.signature)
     @Auth.require_login
-    def delete(request: Request):
+    def delete(self, request: Request, **kwargs):
         evaluation = Evaluation.get_by_signature(request.argument.signature)
         evaluation.delete()
         return OK
 
 
 class ExperimentView(View):
-    @staticmethod
     @analyse.query(
         ExperimentParams.session.copy().default(None, as_final=True),
         ExperimentParams.seed.copy().default(None, as_final=True).to(int),
         EvaluationParams.signature.copy().default(None, as_final=True)
     )
-    def get(request: Request):
+    def get(self, request: Request):
         session = request.query.session
         signature, seed = request.query.signature, request.query.seed
-        if session:
-            experiment = Experiment.get_by_session(session)
-        elif signature and seed is not None:
-            evaluation = Evaluation.get_by_signature(signature)
-            experiment = Experiment.create_or_get(evaluation, seed)
-        else:
-            raise EvaluationErrors.EMPTY_QUERY
+        experiment = Experiment.get(signature, seed, session)
         return experiment.json()
 
-    @staticmethod
     @analyse.body(EvaluationParams.signature, ExperimentParams.seed)
     @Auth.require_login
-    def post(request: Request):
+    def post(self, request: Request):
         evaluation = Evaluation.get_by_signature(request.body.signature)
         experiment = Experiment.create_or_get(
             evaluation=evaluation,
@@ -87,14 +76,13 @@ class ExperimentView(View):
         )
         return experiment.session
 
-    @staticmethod
     @analyse.body(
         ExperimentParams.session,
         ExperimentParams.log,
         ExperimentParams.performance
     )
     @Auth.require_login
-    def put(request: Request):
+    def put(self, request: Request):
         experiment = Experiment.get_by_session(request.body.session)
         experiment.complete(
             log=request.body.log,
@@ -104,39 +92,30 @@ class ExperimentView(View):
 
 
 class ExperimentRegisterView(View):
-    @staticmethod
     @analyse.argument(ExperimentParams.session)
     @analyse.body(ExperimentParams.pid)
     @Auth.require_login
-    def post(request: Request):
+    def post(self, request: Request, **kwargs):
         experiment = Experiment.get_by_session(request.argument.session)
         experiment.register(request.body.pid)
         return experiment.json()
 
 
 class LogView(View):
-    @staticmethod
     @analyse.query(
         ExperimentParams.session.copy().default(None, as_final=True),
         ExperimentParams.seed.copy().default(None, as_final=True).to(int),
         EvaluationParams.signature.copy().default(None, as_final=True)
     )
-    def get(request: Request):
+    def get(self, request: Request):
         session = request.query.session
         signature, seed = request.query.signature, request.query.seed
-        if session:
-            experiment = Experiment.get_by_session(session)
-        elif signature and seed is not None:
-            evaluation = Evaluation.get_by_signature(signature)
-            experiment = Experiment.create_or_get(evaluation, seed)
-        else:
-            raise EvaluationErrors.EMPTY_QUERY
+        experiment = Experiment.get(signature, seed, session)
         return experiment.prettify_log()
 
 
 class LogSummarizeView(View):
-    @staticmethod
-    def get(request: Request):
+    def get(self, request: Request):
         for experiment in Experiment.objects.all():
             experiment.summarize()
 
