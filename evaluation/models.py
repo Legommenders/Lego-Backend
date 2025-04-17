@@ -299,4 +299,3 @@ class Experiment(models.Model, Dictify):
 
         self.summary = handler.json_dumps(feature)
         self.save()
-
