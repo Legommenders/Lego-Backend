@@ -1,4 +1,5 @@
 django
-smartdjango>4.0.0
+smartdjango
 diq
 django-cors-headers
+pytz

@@ -141,12 +141,18 @@ class Experiment(models.Model, Dictify):
     session = models.CharField(max_length=32, unique=True)
     log = models.TextField(null=True, blank=True)
     performance = models.TextField(null=True, blank=True)
-    summary = models.TextField(null=True, blank=True)
     pid = models.IntegerField(null=True, blank=True)
     is_completed = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(auto_now=True)
+
+    data_start_time = models.IntegerField(null=True, blank=True)
+    data_final_time = models.IntegerField(null=True, blank=True)
+    data_prep_time = models.IntegerField(null=True, blank=True)
+    data_total_epochs = models.IntegerField(null=True, blank=True)
+    data_epoch_durations = models.TextField(null=True, blank=True)
+    data_valid_metrics = models.TextField(null=True, blank=True)
 
     @classmethod
     def create(cls, evaluation, seed):
@@ -194,6 +200,8 @@ class Experiment(models.Model, Dictify):
         self.is_completed = True
         self.save()
 
+        self.summarize()
+
     def _dictify_created_at(self):
         return self.created_at.astimezone(Space.tz).isoformat()
 
@@ -209,9 +217,14 @@ class Experiment(models.Model, Dictify):
         return None
 
     def _dictify_summary(self):
-        if self.summary:
-            return handler.json_loads(self.summary)
-        return None
+        return dict(
+            start_time=self.data_start_time,
+            final_time=self.data_final_time,
+            prep_time=self.data_prep_time,
+            total_epochs=self.data_total_epochs,
+            epoch_durations=handler.json_loads(self.data_epoch_durations),
+            valid_metrics=handler.json_loads(self.data_valid_metrics),
+        )
 
     def prettify_log(self):
         if self.log:
@@ -225,10 +238,7 @@ class Experiment(models.Model, Dictify):
         return self.dictify('is_completed', 'created_at', 'completed_at', 'seed', 'performance', 'pid')
 
     def summarize(self):
-        if self.summary:
-            return
-
-        if not self.performance:
+        if not self.is_completed:
             return
 
         runtime_pattern = r'^\[(\d{2}:\d{2}:\d{2})\]'  # 匹配日志运行时间
@@ -288,14 +298,10 @@ class Experiment(models.Model, Dictify):
         epoch_durations = list(map(int, epoch_durations))
         valid_metrics = list(map(float, valid_metrics))
 
-        feature = dict(
-            start_time=start_time.timestamp(),
-            final_time=final_runtime.total_seconds(),
-            prep_time=prep_time.total_seconds(),
-            total_epochs=len(epoch_times) - 1,
-            epoch_durations=epoch_durations,
-            valid_metrics=valid_metrics,
-        )
-
-        self.summary = handler.json_dumps(feature)
+        self.data_start_time = start_time.timestamp()
+        self.data_final_time = final_runtime.total_seconds()
+        self.data_prep_time = prep_time.total_seconds()
+        self.data_total_epochs = len(epoch_times) - 1
+        self.data_epoch_durations = handler.json_dumps(epoch_durations)
+        self.data_valid_metrics = handler.json_dumps(valid_metrics)
         self.save()

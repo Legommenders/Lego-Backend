@@ -118,5 +118,4 @@ class LogSummarizeView(View):
     def get(self, request: Request):
         for experiment in Experiment.objects.all():
             experiment.summarize()
-
         return OK
