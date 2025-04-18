@@ -1,12 +1,13 @@
 import re
 from datetime import timedelta, datetime
 
+import numpy as np
 from diq import Dictify
 from django.db import models
 from django.utils.crypto import get_random_string
 from smartdjango import Error, Code
 
-from common import handler
+from common import handler, function
 from common.space import Space
 
 
@@ -90,11 +91,42 @@ class Evaluation(models.Model, Dictify):
             return handler.json_loads(self.configuration)
         return None
 
+    def _dictify_performance(self):
+        experiments = self.experiment_set.filter(is_completed=True)
+        performance = dict()
+        for experiment in experiments:
+            current_performance = experiment.dictify_performance()
+            for metric in current_performance:
+                if metric not in performance:
+                    performance[metric] = []
+                performance[metric].append(current_performance[metric])
+        for metric in performance:
+            mean = np.mean(performance[metric])
+            std = np.std(performance[metric], ddof=1)
+            performance[metric] = f'{mean:.4f}\\tiny' + '{' + f' ± {std:.4f}' + '}'
+
+        return performance
+
+    def _dictify_params(self):
+        kwargs = function.argparse(self.command)
+        data_name = kwargs['data'].split('/')[-1].split('.')[0]
+        model_name = kwargs['model'].split('/')[-1].split('.')[0]
+        return dict(
+            data=data_name,
+            model=model_name,
+            batch_size=kwargs['batch_size'],
+            lr=kwargs['lr'],
+            lm=kwargs['lm'],
+        )
+
     def jsonl(self):
         return self.dictify('signature', 'command', 'created_at', 'modified_at', 'comment', 'experiments')
 
     def json(self):
         return self.dictify('signature', 'command', 'configuration', 'created_at', 'modified_at', 'comment', 'experiments')
+
+    def jsonl4export(self):
+        return self.dictify('params', 'performance', 'command')
 
 
 class Tag(models.Model, Dictify):
@@ -211,10 +243,13 @@ class Experiment(models.Model, Dictify):
     def _dictify_signature(self):
         return self.evaluation.signature
 
-    def _dictify_performance(self):
+    def dictify_performance(self):
         if self.performance:
             return handler.json_loads(self.performance)
         return None
+
+    def _dictify_performance(self):
+        return self.dictify_performance()
 
     def _dictify_summary(self):
         return dict(

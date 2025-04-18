@@ -1,7 +1,7 @@
 from functools import wraps
 
 from django.http import HttpRequest
-from smartdjango import Error, Code
+from smartdjango import Error, Code, analyse
 
 from common.space import Space
 
@@ -19,7 +19,8 @@ class Auth:
         Decorator to ensure a request is authenticated using a token-based system.
         """
         @wraps(func)
-        def wrapper(request: HttpRequest, *args, **kwargs):
+        def wrapper(*args, **kwargs):
+            request = analyse.get_request(*args)
             auth_token = request.META.get('HTTP_AUTHENTICATION')
             if auth_token != Space.auth:
                 raise AuthErrors.TOKEN
