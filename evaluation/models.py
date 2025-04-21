@@ -86,26 +86,49 @@ class Evaluation(models.Model, Dictify):
     def _dictify_experiments(self):
         return [exp.jsonl() for exp in self.experiment_set.all()]
 
-    def _dictify_configuration(self):
+    def prettify_configuration(self):
         if self.configuration:
             return handler.json_loads(self.configuration)
         return None
 
-    def _dictify_performance(self):
+    def _dictify_configuration(self):
+        return self.prettify_configuration()
+
+    def prettify_performance(self, metrics=None):
         experiments = self.experiment_set.filter(is_completed=True)
         performance = dict()
         for experiment in experiments:
             current_performance = experiment.dictify_performance()
             for metric in current_performance:
+                if metrics and metric.lower() not in metrics:
+                    continue
                 if metric not in performance:
                     performance[metric] = []
                 performance[metric].append(current_performance[metric])
         for metric in performance:
             mean = np.mean(performance[metric])
             std = np.std(performance[metric], ddof=1)
-            performance[metric] = f'{mean:.4f}\\tiny' + '{' + f' ± {std:.4f}' + '}'
+            # performance[metric] = f'{mean:.4f}\\tiny' + '{' + f' ± {std:.4f}' + '}'
+            performance[metric] = (mean, std)
 
         return performance
+
+    def _dictify_performance(self):
+        return self.prettify_performance()
+
+    def export_rank_performance(self, metrics):
+        experiments = self.experiment_set.filter(is_completed=True)
+        values = []
+        for experiment in experiments:
+            current_performance = experiment.dictify_performance()
+            current_performance = {k.lower(): v for k, v in current_performance.items()}
+            for metric in metrics:
+                if metric not in current_performance:
+                    return 0
+                values.append(current_performance[metric])
+        if len(values) == 0:
+            return 0
+        return sum(values) / len(values)
 
     def _dictify_params(self):
         kwargs = function.argparse(self.command)
@@ -165,6 +188,7 @@ class Tag(models.Model, Dictify):
 
     def jsonl(self):
         return self.dictify('name')
+
 
 
 class Experiment(models.Model, Dictify):

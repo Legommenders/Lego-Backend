@@ -1,9 +1,11 @@
 from django.core.paginator import Paginator
 from django.views import View
+from oba import Obj
 from smartdjango import analyse, Validator, OK
 from smartdjango.analyse import Request
 
 from common.auth import Auth
+from evaluation.export import get_top_rank_models_per_datasets
 from evaluation.models import Evaluation, Experiment
 from evaluation.params import EvaluationParams, ExperimentParams
 
@@ -124,67 +126,79 @@ class LogSummarizeView(View):
 class ExportView(View):
     @analyse.query(
         Validator('replicate').default(5, as_final=True),
+        Validator('metrics').default(None, as_final=True).to(lambda x: x.split(',')),
+        Validator('datasets').default(None, as_final=True).to(lambda x: x.split(',')),
+        Validator('scenario').default('get_top_rank_models_per_datasets', as_final=True),
+        Validator('top_k').default(1, as_final=True).to(int)
     )
     def get(self, request: Request):
         replicate = request.query.replicate
+        metrics = Obj.raw(request.query.metrics)
+        datasets = Obj.raw(request.query.datasets)
 
-        selected_evaluations = []
-        for evaluation in Evaluation.objects.all():
-            experiments = Experiment.objects.filter(evaluation=evaluation, is_completed=True)
-            if experiments.count() >= replicate:
-                selected_evaluations.append(evaluation)
+        scenario = request.query.scenario
+        if scenario == 'get_top_rank_models_per_datasets':
+            return get_top_rank_models_per_datasets(replicate, metrics, datasets, top_k=request.query.top_k)
 
-        evaluations = [evaluation.jsonl4export() for evaluation in selected_evaluations]
+        return OK
 
-        models = ['dnn', 'pnn', 'deepfm', 'dcn', 'dcnv2', 'din', 'autoint', 'finalmlp', 'gdcn', 'masknet']
-        pretty_models = {
-            'dnn': 'DNN',
-            'pnn': 'PNN',
-            'deepfm': 'DeepFM',
-            'dcn': 'DCN',
-            'dcnv2': 'DCNv2',
-            'din': 'DIN',
-            'autoint': 'AutoInt',
-            'finalmlp': 'FinalMLP',
-            'gdcn': 'GDCN',
-            'masknet': 'MaskNet',
-        }
-        use_id = True
-
-        if use_id:
-            models = [f'{method}_id' for method in models]
-
-        datasets = ['automotive', 'books', 'cds']
-        metrics = ['gauc', 'mrr', 'ndcg@1']
-
-        table = dict()
-
-        for model in models:
-            table[model] = dict()
-            for dataset in datasets:
-                table[model][dataset] = dict()
-
-        for evaluation in evaluations:
-            model_name = evaluation['params']['model'].lower()
-            data_name = evaluation['params']['data'].lower()
-            performance = {k.lower(): v for k, v in evaluation['performance'].items()}
-
-            if model_name in models and data_name in datasets:
-                for metric in metrics:
-                    table[model_name][data_name][metric] = performance[metric]
-
-        lines = []
-        for model in models:
-            model_name = model.split('_id')[0] if use_id else model
-            model_name = pretty_models[model_name]
-            if use_id:
-                model_name = f'{model_name}' + '$_\\text{ID}$'
-            elements = [model_name]
-
-            for dataset in datasets:
-                for metric in metrics:
-                    elements.append(table[model][dataset].get(metric, ''))
-            string = ' & '.join(elements) + ' \\\\'
-            lines.append(string)
-
-        return '\n'.join(lines)
+        # selected_evaluations = []
+        # for evaluation in Evaluation.objects.all():
+        #     experiments = Experiment.objects.filter(evaluation=evaluation, is_completed=True)
+        #     if experiments.count() >= replicate:
+        #         selected_evaluations.append(evaluation)
+        #
+        # evaluations = [evaluation.jsonl4export() for evaluation in selected_evaluations]
+        #
+        # models = ['dnn', 'pnn', 'deepfm', 'dcn', 'dcnv2', 'din', 'autoint', 'finalmlp', 'gdcn', 'masknet']
+        # pretty_models = {
+        #     'dnn': 'DNN',
+        #     'pnn': 'PNN',
+        #     'deepfm': 'DeepFM',
+        #     'dcn': 'DCN',
+        #     'dcnv2': 'DCNv2',
+        #     'din': 'DIN',
+        #     'autoint': 'AutoInt',
+        #     'finalmlp': 'FinalMLP',
+        #     'gdcn': 'GDCN',
+        #     'masknet': 'MaskNet',
+        # }
+        # use_id = True
+        #
+        # if use_id:
+        #     models = [f'{method}_id' for method in models]
+        #
+        # datasets = ['automotive', 'books', 'cds']
+        # metrics = ['gauc', 'mrr', 'ndcg@1']
+        #
+        # table = dict()
+        #
+        # for model in models:
+        #     table[model] = dict()
+        #     for dataset in datasets:
+        #         table[model][dataset] = dict()
+        #
+        # for evaluation in evaluations:
+        #     model_name = evaluation['params']['model'].lower()
+        #     data_name = evaluation['params']['data'].lower()
+        #     performance = {k.lower(): v for k, v in evaluation['performance'].items()}
+        #
+        #     if model_name in models and data_name in datasets:
+        #         for metric in metrics:
+        #             table[model_name][data_name][metric] = performance[metric]
+        #
+        # lines = []
+        # for model in models:
+        #     model_name = model.split('_id')[0] if use_id else model
+        #     model_name = pretty_models[model_name]
+        #     if use_id:
+        #         model_name = f'{model_name}' + '$_\\text{ID}$'
+        #     elements = [model_name]
+        #
+        #     for dataset in datasets:
+        #         for metric in metrics:
+        #             elements.append(table[model][dataset].get(metric, ''))
+        #     string = ' & '.join(elements) + ' \\\\'
+        #     lines.append(string)
+        #
+        # return '\n'.join(lines)
