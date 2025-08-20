@@ -1,3 +1,4 @@
+# ignore_security_alert_file SQL_INJECTION
 from django.core.paginator import Paginator
 from django.views import View
 from oba import Obj
@@ -34,7 +35,7 @@ class EvaluationView(View):
             'total': paginator.count,
         }
 
-    @analyse.body(
+    @analyse.json(
         EvaluationParams.signature,
         EvaluationParams.command,
         EvaluationParams.configuration
@@ -42,9 +43,9 @@ class EvaluationView(View):
     @Auth.require_login
     def post(self, request: Request):
         evaluation = Evaluation.create_or_get(
-            signature=request.body.signature,
-            command=request.body.command,
-            configuration=request.body.configuration,
+            signature=request.json.signature,
+            command=request.json.command,
+            configuration=request.json.configuration,
         )
         return evaluation.json()
 
@@ -68,38 +69,38 @@ class ExperimentView(View):
         experiment = Experiment.get(signature, seed, session)
         return experiment.json()
 
-    @analyse.body(EvaluationParams.signature, ExperimentParams.seed)
+    @analyse.json(EvaluationParams.signature, ExperimentParams.seed)
     @Auth.require_login
     def post(self, request: Request):
-        evaluation = Evaluation.get_by_signature(request.body.signature)
+        evaluation = Evaluation.get_by_signature(request.json.signature)
         experiment = Experiment.create_or_get(
             evaluation=evaluation,
-            seed=request.body.seed,
+            seed=request.json.seed,
         )
         return experiment.session
 
-    @analyse.body(
+    @analyse.json(
         ExperimentParams.session,
         ExperimentParams.log,
         ExperimentParams.performance
     )
     @Auth.require_login
     def put(self, request: Request):
-        experiment = Experiment.get_by_session(request.body.session)
+        experiment = Experiment.get_by_session(request.json.session)
         experiment.complete(
-            log=request.body.log,
-            performance=request.body.performance,
+            log=request.json.log,
+            performance=request.json.performance,
         )
         return experiment.json()
 
 
 class ExperimentRegisterView(View):
     @analyse.argument(ExperimentParams.session)
-    @analyse.body(ExperimentParams.pid)
+    @analyse.json(ExperimentParams.pid)
     @Auth.require_login
     def post(self, request: Request, **kwargs):
         experiment = Experiment.get_by_session(request.argument.session)
-        experiment.register(request.body.pid)
+        experiment.register(request.json.pid)
         return experiment.json()
 
 

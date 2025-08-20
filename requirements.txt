@@ -3,3 +3,4 @@ smartdjango
 diq
 django-cors-headers
 pytz
+oba
