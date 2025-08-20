@@ -5,7 +5,7 @@ from oba import Obj
 from smartdjango import analyse, Validator, OK
 from smartdjango.analyse import Request
 
-from common.auth import Auth
+from common import auth
 from evaluation.export import get_top_rank_models_per_datasets
 from evaluation.models import Evaluation, Experiment
 from evaluation.params import EvaluationParams, ExperimentParams
@@ -40,7 +40,7 @@ class EvaluationView(View):
         EvaluationParams.command,
         EvaluationParams.configuration
     )
-    @Auth.require_login
+    @auth.require_login
     def post(self, request: Request):
         evaluation = Evaluation.create_or_get(
             signature=request.json.signature,
@@ -50,7 +50,7 @@ class EvaluationView(View):
         return evaluation.json()
 
     @analyse.argument(EvaluationParams.signature)
-    @Auth.require_login
+    @auth.require_login
     def delete(self, request: Request, **kwargs):
         evaluation = Evaluation.get_by_signature(request.argument.signature)
         evaluation.delete()
@@ -70,7 +70,7 @@ class ExperimentView(View):
         return experiment.json()
 
     @analyse.json(EvaluationParams.signature, ExperimentParams.seed)
-    @Auth.require_login
+    @auth.require_login
     def post(self, request: Request):
         evaluation = Evaluation.get_by_signature(request.json.signature)
         experiment = Experiment.create_or_get(
@@ -84,7 +84,7 @@ class ExperimentView(View):
         ExperimentParams.log,
         ExperimentParams.performance
     )
-    @Auth.require_login
+    @auth.require_login
     def put(self, request: Request):
         experiment = Experiment.get_by_session(request.json.session)
         experiment.complete(
@@ -97,7 +97,7 @@ class ExperimentView(View):
 class ExperimentRegisterView(View):
     @analyse.argument(ExperimentParams.session)
     @analyse.json(ExperimentParams.pid)
-    @Auth.require_login
+    @auth.require_login
     def post(self, request: Request, **kwargs):
         experiment = Experiment.get_by_session(request.argument.session)
         experiment.register(request.json.pid)
