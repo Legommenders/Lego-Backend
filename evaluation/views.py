@@ -1,7 +1,6 @@
 # ignore_security_alert_file SQL_INJECTION
 from django.core.paginator import Paginator
 from django.views import View
-from oba import Obj
 from smartdjango import analyse, Validator, OK
 from smartdjango.analyse import Request
 
@@ -134,8 +133,8 @@ class ExportView(View):
     )
     def get(self, request: Request):
         replicate = request.query.replicate
-        metrics = Obj.raw(request.query.metrics)
-        datasets = Obj.raw(request.query.datasets)
+        metrics = request.query.metrics()
+        datasets = request.query.datasets()
 
         scenario = request.query.scenario
         if scenario == 'get_top_rank_models_per_datasets':

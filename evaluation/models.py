@@ -5,25 +5,16 @@ import numpy as np
 from diq import Dictify
 from django.db import models
 from django.utils.crypto import get_random_string
-from smartdjango import Error, Code
 
 from common import handler, function
 from common.space import Space
-
-
-@Error.register
-class EvaluationErrors:
-    """Custom exception for evaluation errors."""
-    EXP_NOT_FOUND = Error('Experiment not found', code=Code.NotFound)
-    TAG_NOT_FOUND = Error('Tag not found', code=Code.NotFound)
-    EVALUATION_NOT_FOUND = Error('Evaluation not found', code=Code.NotFound)
-    EVALUATION_CREATION = Error('Evaluation creation failed', code=Code.InternalServerError)
-    ALREADY_COMPLETED = Error('Experiment already completed', code=Code.BadRequest)
-    EMPTY_QUERY = Error('Empty query', code=Code.BadRequest)
+from evaluation.validators import EvaluationValidator, EvaluationErrors, TagValidator, ExperimentValidator
 
 
 class Evaluation(models.Model, Dictify):
-    signature = models.CharField(max_length=10, unique=True)
+    vldt = EvaluationValidator
+
+    signature = models.CharField(max_length=vldt.MAX_SIGNATURE_LENGTH, unique=True)
     command = models.TextField(unique=True)
     configuration = models.TextField()
 
@@ -41,7 +32,7 @@ class Evaluation(models.Model, Dictify):
                 configuration=configuration,
             )
         except Exception as e:
-            raise EvaluationErrors.EVALUATION_CREATION(debug_message=e)
+            raise EvaluationErrors.EVALUATION_CREATION(details=e)
 
     @classmethod
     def create_or_get(cls, signature, command, configuration):
@@ -153,7 +144,9 @@ class Evaluation(models.Model, Dictify):
 
 
 class Tag(models.Model, Dictify):
-    name = models.CharField(max_length=50, unique=True)
+    vldt = TagValidator
+
+    name = models.CharField(max_length=vldt.MAX_NAME_LENGTH, unique=True)
     evaluations = models.ManyToManyField(Evaluation, related_name='tags')
 
     @classmethod
@@ -192,9 +185,11 @@ class Tag(models.Model, Dictify):
 
 
 class Experiment(models.Model, Dictify):
+    vldt = ExperimentValidator
+
     evaluation = models.ForeignKey(Evaluation, on_delete=models.CASCADE)
     seed = models.IntegerField()
-    session = models.CharField(max_length=32, unique=True)
+    session = models.CharField(max_length=vldt.MAX_SESSION_LENGTH, unique=True)
     log = models.TextField(null=True, blank=True)
     performance = models.TextField(null=True, blank=True)
     pid = models.IntegerField(null=True, blank=True)
