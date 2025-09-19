@@ -1,6 +1,5 @@
 from functools import wraps
 
-from django.http import HttpRequest
 from smartdjango import Error, Code, analyse
 
 from common.space import Space
@@ -21,6 +20,6 @@ def require_login(func):
         auth_token = request.META.get('HTTP_AUTHENTICATION')
         if auth_token != Space.auth:
             raise AuthErrors.TOKEN
-        return func(request, *args, **kwargs)
+        return func(*args, **kwargs)
 
     return wrapper

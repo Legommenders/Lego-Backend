@@ -5,7 +5,7 @@ from smartdjango import analyse, Validator, OK
 from smartdjango.analyse import Request
 
 from common import auth
-from evaluation.export import get_top_rank_models_per_datasets
+from evaluation.export import get_top_rank_models_per_datasets, get_total_running_hours
 from evaluation.models import Evaluation, Experiment
 from evaluation.params import EvaluationParams, ExperimentParams
 
@@ -129,7 +129,8 @@ class ExportView(View):
         Validator('metrics').default(None, as_final=True).to(lambda x: x.split(',')),
         Validator('datasets').default(None, as_final=True).to(lambda x: x.split(',')),
         Validator('scenario').default('get_top_rank_models_per_datasets', as_final=True),
-        Validator('top_k').default(1, as_final=True).to(int)
+        Validator('top_k').default(1, as_final=True).to(int),
+        Validator('return_table').default(0, as_final=True).to(int),
     )
     def get(self, request: Request):
         replicate = request.query.replicate
@@ -138,7 +139,9 @@ class ExportView(View):
 
         scenario = request.query.scenario
         if scenario == 'get_top_rank_models_per_datasets':
-            return get_top_rank_models_per_datasets(replicate, metrics, datasets, top_k=request.query.top_k)
+            return get_top_rank_models_per_datasets(replicate, metrics, datasets, top_k=request.query.top_k, return_table=request.query.return_table)
+        if scenario == 'get_total_running_hours':
+            return get_total_running_hours()
 
         return OK
 
