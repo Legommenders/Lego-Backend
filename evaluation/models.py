@@ -276,8 +276,8 @@ class Experiment(models.Model, Dictify):
             final_time=self.data_final_time,
             prep_time=self.data_prep_time,
             total_epochs=self.data_total_epochs,
-            epoch_durations=handler.json_loads(self.data_epoch_durations),
-            valid_metrics=handler.json_loads(self.data_valid_metrics),
+            epoch_durations=self.data_epoch_durations and handler.json_loads(self.data_epoch_durations),
+            valid_metrics=self.data_valid_metrics and handler.json_loads(self.data_valid_metrics),
         )
 
     def prettify_log(self):
