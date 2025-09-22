@@ -57,12 +57,12 @@ class EvaluationView(View):
 
 
 class ExperimentView(View):
+    @analyse.argument(ExperimentParams.session.copy().default(None, as_final=True))
     @analyse.query(
-        ExperimentParams.session.copy().default(None, as_final=True),
         ExperimentParams.seed.copy().default(None, as_final=True).to(int),
         EvaluationParams.signature.copy().default(None, as_final=True)
     )
-    def get(self, request: Request):
+    def get(self, request: Request, **kwargs):
         session = request.query.session
         signature, seed = request.query.signature, request.query.seed
         experiment = Experiment.get(signature, seed, session)
